@@ -91,7 +91,7 @@ select{font:inherit;font-size:17px;padding:10px;border:1px solid var(--line);bor
 const P = s => { if (s===undefined||s===null) return NaN; s=String(s).trim().replace(/\s/g,''); if(!s) return NaN;
   if (s.includes(',')) s = s.replace(/\./g,'').replace(',', '.'); return parseFloat(s); };
 const F = (n,d=2) => !Number.isFinite(n) ? '—' : n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
-const estFmt=(p,de=20)=>Number.isFinite(p)?Math.floor(p/de+1e-9)+' + '+F(p-Math.floor(p/de+1e-9)*de,2):'—';
+const estFmt=(p,de=20,m=true)=>Number.isFinite(p)?Math.floor(p/de+1e-9)+' + '+F(p-Math.floor(p/de+1e-9)*de,2)+(m?' ('+F(p,2)+' m)':''):'—';
 const up = n => Number.isFinite(n) ? Math.ceil(n-1e-9) : NaN;
 
 const CALCS = [
@@ -361,9 +361,9 @@ function drawCtl(){
      C.cfg={...CFG_DEF,...C.cfg,...d.cfg}; C.cargas={...C.cargas,...d.cargas}; saveLocal(); toast('Backup importado: '+Object.keys(d.cargas).length+' cargas'); drawCtl();}catch(_){toast('Arquivo inválido')}};
   g('csv').onclick=async()=>{
     const all=Object.entries(C.cargas).map(([id,r])=>({id,...r})).sort((a,b)=>(a.dia+a.hora).localeCompare(b.dia+b.hora));
-    const hd='dia;hora;nota;faixa;toneladas;temp_C;estaca_ini;estaca_fim;largura_m;extensao_m;area_m2;esp_real_cm;desvio_%;taxa_kg_m2;esp_medida_cm;temp_ok;esp_ok;obs';
+    const hd='dia;hora;nota;faixa;toneladas;temp_C;estaca_ini;estaca_fim;metro_ini;metro_fim;largura_m;extensao_m;area_m2;esp_real_cm;desvio_%;taxa_kg_m2;esp_medida_cm;temp_ok;esp_ok;obs';
     const f=(x,d=2)=>Number.isFinite(x)?x.toFixed(d).replace('.',','):'';
-    const rows=all.map(r=>{const k=calcCarga(r);return [r.dia,r.hora,r.nota,r.faixa,f(r.t),f(r.temp,0),estFmt(k.pi,cfg.de),Number.isFinite(k.pf)?estFmt(k.pf,cfg.de):'',f(k.B),f(k.L,1),f(k.A,1),f(k.er),f(k.dev,1),f(k.taxa,0),f(r.em,1),k.tOk==null?'':k.tOk?'sim':'não',k.eOk==null?'':k.eOk?'sim':'não',(r.obs||'').replace(/[;\n]/g,' ')].join(';')});
+    const rows=all.map(r=>{const k=calcCarga(r);return [r.dia,r.hora,r.nota,r.faixa,f(r.t),f(r.temp,0),estFmt(k.pi,cfg.de,false),Number.isFinite(k.pf)?estFmt(k.pf,cfg.de,false):'',f(k.pi),f(k.pf),f(k.B),f(k.L,1),f(k.A,1),f(k.er),f(k.dev,1),f(k.taxa,0),f(r.em,1),k.tOk==null?'':k.tOk?'sim':'não',k.eOk==null?'':k.eOk?'sim':'não',(r.obs||'').replace(/[;\n]/g,' ')].join(';')});
     const data='﻿'+hd+'\n'+rows.join('\n');
     shareFile('controle-cbuq.csv',data,'text/csv');};
 }
