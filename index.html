@@ -259,6 +259,9 @@ function calcCarga(r,cfg=C.cfg){
   const eOk=!Number.isFinite(dev)?null:Math.abs(dev)<=cfg.tol;
   return {pi,pf,B,Lprev,pfPrev:pi+Lprev,L,A,er,dev,tOk,eOk,taxa:Number.isFinite(A)&&A>0?r.t*1000/A:NaN};
 }
+const placasUsadas=()=>{const c={};Object.values(C.cargas).forEach(r=>{if(r.placa)c[r.placa]=(c[r.placa]||0)+1});return Object.keys(c).sort((a,b)=>c[b]-c[a]).slice(0,30)};
+function porPlaca(list){const m={};list.forEach(r=>{const p=r.placa||'Sem placa',k=calcCarga(r);const x=m[p]=m[p]||{placa:p,n:0,t:0,tc:0,L:0,A:0,ts:[]};x.n++;x.t+=r.t||0;if(Number.isFinite(k.L)&&k.L>0){x.tc+=r.t;x.L+=k.L;x.A+=k.A;}if(Number.isFinite(r.temp))x.ts.push(r.temp);});
+  return Object.values(m).map(x=>{x.er=x.A>0?x.tc/(C.cfg.dens*x.A)*100:NaN;x.dev=(x.er/C.cfg.e-1)*100;x.temp=x.ts.length?x.ts.reduce((a,b)=>a+b,0)/x.ts.length:NaN;return x}).sort((a,b)=>b.t-a.t);}
 const dayList=d=>Object.entries(C.cargas).map(([id,r])=>({id,...r})).filter(r=>r.dia===d).sort((a,b)=>(a.hora||'').localeCompare(b.hora||'')||(a.criado||0)-(b.criado||0));
 
 function controle(){ ctlDay=ctlDay||today(); editId=null; drawCtl(); }
@@ -270,7 +273,7 @@ function drawCtl(){
   // sugestão: começa onde a última terminou
   let sugE='',sugM='';
   if(!ed&&last){const k=calcCarga(last);const p=Number.isFinite(k.pf)?k.pf:k.pfPrev; if(Number.isFinite(p)){sugE=Math.floor(p/cfg.de+1e-9);sugM=+(p-sugE*cfg.de).toFixed(2);}}
-  const v=ed||{nota:'',t:'',temp:'',ei:sugE,mi:sugM,ef:'',mf:'',B:cfg.B,faixa:last?last.faixa:'LD',em:'',obs:''};
+  const v=ed||{nota:'',placa:'',t:'',temp:'',ei:sugE,mi:sugM,ef:'',mf:'',B:cfg.B,faixa:last?last.faixa:'LD',em:'',obs:''};
   const n=x=>(x===''||x==null||!Number.isFinite(x))?'':String(x).replace('.',',');
   const days=[...new Set(Object.values(C.cargas).map(r=>r.dia).concat([today(),ctlDay]))].sort().reverse();
 
@@ -285,7 +288,8 @@ function drawCtl(){
    <div class="grid"><label class="full">Dia<select id="day">${days.map(d=>`<option ${d===ctlDay?'selected':''} value="${d}">${d.split('-').reverse().join('/')}${d===today()?' (hoje)':''}</option>`).join('')}</select></label></div>
 
    <div class="sec" id="frm"><h3>${ed?'Editar carga':'Nova carga'}</h3><div class="grid">
-    <label>Nota / placa<input id="f_nota" value="${esc(v.nota)}" placeholder="NF 1234"></label>
+    <label>Placa<input id="f_placa" list="placas" value="${esc(v.placa)}" placeholder="ABC1D23" autocapitalize="characters"><datalist id="placas">${placasUsadas().map(p=>`<option value="${esc(p)}">`).join('')}</datalist></label>
+    <label>Nota fiscal<input id="f_nota" value="${esc(v.nota)}" placeholder="NF 1234"></label>
     <label>Toneladas<input id="f_t" inputmode="decimal" value="${n(v.t)}"></label>
     <label>Temp. chegada (°C)<input id="f_temp" inputmode="decimal" value="${n(v.temp)}"></label>
     <label>Faixa<select id="f_faixa">${['LD','LE','Eixo','Ambas'].map(o=>`<option ${o===v.faixa?'selected':''}>${o}</option>`).join('')}</select></label>
@@ -312,9 +316,10 @@ function drawCtl(){
     <div class="kpi"><div class="k">Temp. média</div><div class="v">${ts.length?F(ts.reduce((a,b)=>a+b,0)/ts.length,0)+' °C':'—'}</div></div>
     <div class="kpi"><div class="k">Fora da tolerância</div><div class="v" style="color:${nb?'#d0443a':'inherit'}">${nb}</div></div>
    </div></div>
+   ${porPlaca(list).length?`<div class="sec"><h3>Por caminhão</h3>${porPlaca(list).map(x=>`<div class="load"><div class="top"><b>${esc(x.placa)}</b><b>${F(x.t,2)} t</b></div><div class="mid"><span>${x.n} viage${x.n>1?'ns':'m'}</span>${x.L>0?`<span>${F(x.L,1)} m</span><span class="badge ${Math.abs(x.dev)<=cfg.tol?'ok':'bad'}">${F(x.er,2)} cm</span>`:''}${Number.isFinite(x.temp)?`<span>${F(x.temp,0)} °C méd.</span>`:''}</div></div>`).join('')}</div>`:''}
 
    <div class="sec"><h3>Cargas do dia</h3><div id="lst">${list.length?'':'<div class="note">Nenhuma carga lançada neste dia.</div>'}${list.map((r,i)=>{const k=calcCarga(r);
-     return `<div class="load"><div class="top"><span><b>#${i+1}</b> · ${esc(r.hora)} · ${esc(r.nota||'s/ nota')} · ${esc(r.faixa||'')}</span><b>${F(r.t,2)} t</b></div>
+     return `<div class="load"><div class="top"><span><b>#${i+1}</b> · ${esc(r.hora)} · <b>${esc(r.placa||'s/ placa')}</b>${r.nota?' · '+esc(r.nota):''} · ${esc(r.faixa||'')}</span><b>${F(r.t,2)} t</b></div>
      <div class="mid"><span>${estFmt(k.pi,cfg.de)} → ${Number.isFinite(k.pf)?estFmt(k.pf,cfg.de):'<i>em andamento</i> (prev. '+estFmt(k.pfPrev,cfg.de)+')'}</span>
      ${Number.isFinite(k.L)&&k.L>0?`<span>${F(k.L,1)} m</span><span class="badge ${k.eOk?'ok':'bad'}">${F(k.er,2)} cm (${k.dev>0?'+':''}${F(k.dev,0)}%)</span>`:`<span class="badge neu">rende ${F(k.Lprev,1)} m</span>`}
      ${Number.isFinite(r.temp)?`<span class="badge ${k.tOk?'ok':'bad'}">${F(r.temp,0)} °C</span>`:''}
@@ -332,7 +337,7 @@ function drawCtl(){
   </div>`;
 
   const g=id=>document.getElementById(id);
-  const read=()=>({nota:g('f_nota').value.trim(),t:P(g('f_t').value),temp:P(g('f_temp').value),faixa:g('f_faixa').value,ei:P(g('f_ei').value),mi:P(g('f_mi').value)||0,ef:P(g('f_ef').value),mf:P(g('f_mf').value)||0,B:P(g('f_B').value),em:P(g('f_em').value),obs:g('f_obs').value.trim()});
+  const read=()=>({placa:g('f_placa').value.trim().toUpperCase().replace(/\s+/g,''),nota:g('f_nota').value.trim(),t:P(g('f_t').value),temp:P(g('f_temp').value),faixa:g('f_faixa').value,ei:P(g('f_ei').value),mi:P(g('f_mi').value)||0,ef:P(g('f_ef').value),mf:P(g('f_mf').value)||0,B:P(g('f_B').value),em:P(g('f_em').value),obs:g('f_obs').value.trim()});
   const prev=()=>{const r=read(); if(!Number.isFinite(r.t)||!Number.isFinite(r.ei)){g('prev').innerHTML='Informe toneladas e estaca de início para ver quanto a carga rende.';return;}
     const k=calcCarga(r);
     let h=`Rende <b>${F(k.Lprev,1)} m</b> a ${F(cfg.e,1)} cm → termina na estaca <b>${estFmt(k.pfPrev,cfg.de)}</b>. Mesa da vibro ≈ <b>${F(cfg.e*(1+cfg.emp/100),1)} cm</b> solto.`;
@@ -353,7 +358,8 @@ function drawCtl(){
   app.querySelectorAll('[data-cfg]').forEach(i=>{i.addEventListener('change',()=>{const x=P(i.value); if(Number.isFinite(x)){C.cfg[i.dataset.cfg]=x;putCfg();drawCtl();}})});
   g('cpd').onclick=async()=>{
     const txt=`CBUQ — ${ctlDay.split('-').reverse().join('/')}\nCargas: ${list.length} · ${F(tt,2)} t\nExtensão fechada: ${F(Lc,1)} m · Área ${F(Ac,0)} m²\nEsp. média real: ${F(em,2)} cm (projeto ${F(cfg.e,1)} cm, ${Number.isFinite(dv)?(dv>0?'+':'')+F(dv,1)+'%':'—'})\nTemp. média: ${ts.length?F(ts.reduce((a,b)=>a+b,0)/ts.length,0)+' °C':'—'} · Fora da tolerância: ${nb}\n—\n`+
-      list.map((r,i)=>{const k=calcCarga(r);return `#${i+1} ${r.hora} ${r.nota||''} ${r.faixa||''} ${F(r.t,2)} t | ${estFmt(k.pi,cfg.de)} → ${Number.isFinite(k.pf)?estFmt(k.pf,cfg.de):'aberta'}${Number.isFinite(k.er)?' | '+F(k.L,1)+' m | '+F(k.er,2)+' cm':''}${Number.isFinite(r.temp)?' | '+F(r.temp,0)+' °C':''}${r.obs?' | '+r.obs:''}`}).join('\n');
+      'Por caminhão:\n'+porPlaca(list).map(x=>`${x.placa}: ${x.n} viag. · ${F(x.t,2)} t${x.L>0?' · '+F(x.L,1)+' m · '+F(x.er,2)+' cm':''}`).join('\n')+'\n—\n'+
+      list.map((r,i)=>{const k=calcCarga(r);return `#${i+1} ${r.hora} ${r.placa||''} ${r.nota||''} ${r.faixa||''} ${F(r.t,2)} t | ${estFmt(k.pi,cfg.de)} → ${Number.isFinite(k.pf)?estFmt(k.pf,cfg.de):'aberta'}${Number.isFinite(k.er)?' | '+F(k.L,1)+' m | '+F(k.er,2)+' cm':''}${Number.isFinite(r.temp)?' | '+F(r.temp,0)+' °C':''}${r.obs?' | '+r.obs:''}`}).join('\n');
     try{if(navigator.share){await navigator.share({text:txt});return;}}catch(e){if(e&&e.name==='AbortError')return;} try{await navigator.clipboard.writeText(txt);toast('Resumo copiado')}catch(e){toast('Não foi possível copiar')}};
   g('bkx').onclick=()=>shareFile('backup-calc-campo-'+today()+'.json',JSON.stringify(C,null,1),'application/json');
   g('bki').onclick=()=>g('bkf').click();
@@ -361,9 +367,9 @@ function drawCtl(){
      C.cfg={...CFG_DEF,...C.cfg,...d.cfg}; C.cargas={...C.cargas,...d.cargas}; saveLocal(); toast('Backup importado: '+Object.keys(d.cargas).length+' cargas'); drawCtl();}catch(_){toast('Arquivo inválido')}};
   g('csv').onclick=async()=>{
     const all=Object.entries(C.cargas).map(([id,r])=>({id,...r})).sort((a,b)=>(a.dia+a.hora).localeCompare(b.dia+b.hora));
-    const hd='dia;hora;nota;faixa;toneladas;temp_C;estaca_ini;estaca_fim;metro_ini;metro_fim;largura_m;extensao_m;area_m2;esp_real_cm;desvio_%;taxa_kg_m2;esp_medida_cm;temp_ok;esp_ok;obs';
+    const hd='dia;hora;placa;nota;faixa;toneladas;temp_C;estaca_ini;estaca_fim;metro_ini;metro_fim;largura_m;extensao_m;area_m2;esp_real_cm;desvio_%;taxa_kg_m2;esp_medida_cm;temp_ok;esp_ok;obs';
     const f=(x,d=2)=>Number.isFinite(x)?x.toFixed(d).replace('.',','):'';
-    const rows=all.map(r=>{const k=calcCarga(r);return [r.dia,r.hora,r.nota,r.faixa,f(r.t),f(r.temp,0),estFmt(k.pi,cfg.de,false),Number.isFinite(k.pf)?estFmt(k.pf,cfg.de,false):'',f(k.pi),f(k.pf),f(k.B),f(k.L,1),f(k.A,1),f(k.er),f(k.dev,1),f(k.taxa,0),f(r.em,1),k.tOk==null?'':k.tOk?'sim':'não',k.eOk==null?'':k.eOk?'sim':'não',(r.obs||'').replace(/[;\n]/g,' ')].join(';')});
+    const rows=all.map(r=>{const k=calcCarga(r);return [r.dia,r.hora,r.placa||'',r.nota,r.faixa,f(r.t),f(r.temp,0),estFmt(k.pi,cfg.de,false),Number.isFinite(k.pf)?estFmt(k.pf,cfg.de,false):'',f(k.pi),f(k.pf),f(k.B),f(k.L,1),f(k.A,1),f(k.er),f(k.dev,1),f(k.taxa,0),f(r.em,1),k.tOk==null?'':k.tOk?'sim':'não',k.eOk==null?'':k.eOk?'sim':'não',(r.obs||'').replace(/[;\n]/g,' ')].join(';')});
     const data='﻿'+hd+'\n'+rows.join('\n');
     shareFile('controle-cbuq.csv',data,'text/csv');};
 }
