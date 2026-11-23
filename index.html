@@ -109,6 +109,19 @@ const CALCS = [
   f:[['L','Extensão (m)',1500],['B','Largura (m)',7],['e','Espessura (cm)',8],['dens','Densidade (t/m³)',2.4],['perda','Perda/sobra (%)',3],['cap','Carga caminhão (t)',14]],
   c:v=>{const A=v.L*v.B, V=A*v.e/100, M=V*v.dens, Mp=M*(1+v.perda/100);
    return [['Área',A,'m²',1],['Volume',V,'m³'],['Massa teórica',M,'t'],['Massa c/ perda',Mp,'t',2,1],['Cargas',up(Mp/v.cap),'un',0,1],['Consumo por m',Mp/v.L,'t/m']];}},
+ {id:'fresadora', nome:'Prod. fresadora', titulo:'Produção da fresadora', d:'Produção horária/diária e caminhões necessários para o bota-fora.',
+  f:[['vel','Velocidade (m/min)',8],['B','Largura do tambor (m)',2],['e','Espessura (cm)',3],['ef','Eficiência (%)',60],['h','Horas/dia',8],['emp','Empolamento (%)',30],['cap','Caçamba (m³)',12]],
+  c:v=>{const a=v.vel*60*v.B*v.ef/100, V=a*v.e/100, Vs=V*(1+v.emp/100);
+   return [['Produção',a,'m²/h',0,1],['Por dia',a*v.h,'m²/dia',0,1],['Avanço por dia',a*v.h/v.B,'m',0],['Fresado compacto',V,'m³/h'],['Fresado solto',Vs,'m³/h'],['Caminhões por hora',Vs/v.cap,'viag/h',1,1]];}},
+ {id:'frota', nome:'Frota', titulo:'Frota de caminhões', d:'Ciclo do caminhão e quantos precisa para não parar a vibro (ou a fresadora).',
+  f:[['dist','Distância usina/bota-fora (km)',15],['vc','Vel. carregado (km/h)',40],['vv','Vel. vazio (km/h)',50],['tc','Carga + espera (min)',15],['td','Descarga + manobra (min)',10],['cap','Carga do caminhão (t)',14],['prod','Produção da frente (t/h)',100]],
+  c:v=>{const cic=v.tc+v.td+v.dist/v.vc*60+v.dist/v.vv*60, th=v.cap*60/cic;
+   return [['Ciclo do caminhão',cic,'min',0,1],['Viagens por caminhão',60/cic,'viag/h',2],['Cada caminhão entrega',th,'t/h',1],['Caminhões necessários',up(v.prod/th),'un',0,1],['Intervalo entre chegadas',v.cap/v.prod*60,'min',0]];}},
+ {id:'area', nome:'Área irregular', titulo:'Área por larguras medidas', d:'Meça a largura em cada estaca e digite separado por ponto e vírgula. Método dos trapézios.',
+  f:[['lst','Larguras (m) — ex.: 7; 7,2; 6,8; 7,5',"7; 7,2; 6,8; 7,5",'txt'],['d','Espaçamento entre medidas (m)',20],['e','Espessura (cm) — opcional',5],['dens','Densidade (t/m³)',2.4]],
+  c:v=>{const b=String(v.lst).split(/[;\n\/]+|\s{1,}(?=\d)/).map(x=>P(x)).filter(Number.isFinite); let A=0; for(let i=1;i<b.length;i++)A+=(b[i-1]+b[i])/2*v.d;
+   const L=(b.length-1)*v.d;
+   return [['Medidas lidas',b.length,'',0],['Extensão',L,'m',1],['Área',A,'m²',2,1],['Largura média',L>0?A/L:NaN,'m',2],['Volume',A*v.e/100,'m³',2],['Massa',A*v.e/100*v.dens,'t',2,1]];}},
  {id:'estaca', nome:'Estacas', titulo:'Estaqueamento', d:'Extensão entre estacas e quanto CBUQ/fresagem cabe no trecho.',
   f:[['e1','Estaca inicial',10],['m1','+ metros',0],['e2','Estaca final',35],['m2','+ metros',8.5],['de','Dist. entre estacas (m)',20],['B','Largura (m) — opcional',7]],
   c:v=>{const x1=v.e1*v.de+v.m1, x2=v.e2*v.de+v.m2, L=Math.abs(x2-x1);
@@ -117,10 +130,22 @@ const CALCS = [
   f:[['L','Extensão (m)',1500],['B','Largura (m)',7],['tx','Taxa (L/m²)',0.5],['tq','Tanque espargidor (L)',6000]],
   c:v=>{const A=v.L*v.B, Q=A*v.tx;
    return [['Área',A,'m²',1],['Quantidade',Q,'L',0,1],['Em m³',Q/1000,'m³'],['Tanques',up(Q/v.tq),'un',0,1],['Por metro de pista',Q/v.L,'L/m']];}},
+ {id:'bandeja', nome:'Taxa bandeja', titulo:'Taxa de aplicação pela bandeja', d:'Confere a taxa do espargidor (pintura/imprimação) pesando a bandeja.',
+  f:[['p0','Bandeja vazia (g)',450],['p1','Bandeja com material (g)',495],['a','Lado A (cm)',30],['b','Lado B (cm)',30],['dens','Densidade do material (kg/L)',1.0],['tx','Taxa de projeto (L/m²)',0.5]],
+  c:v=>{const A=v.a*v.b/1e4, kg=(v.p1-v.p0)/1000/A, L=kg/v.dens, dv=(L/v.tx-1)*100;
+   return [['Taxa medida',kg,'kg/m²',3],['Taxa medida',L,'L/m²',3,1],['Desvio x projeto',(dv>0?'+':'')+F(dv,1),'%',1,1],['Área da bandeja',A,'m²',3]];}},
  {id:'terra', nome:'Terraplenagem', titulo:'Volume por seção média', d:'V = (A1 + A2)/2 × distância. Corte empolado ou aterro com fator de homogeneização.',
   f:[['A1','Área seção 1 (m²)',12],['A2','Área seção 2 (m²)',18],['d','Distância (m)',20],['emp','Empolamento (%)',25],['fh','Fator homogen. (aterro)',1.25],['cap','Caçamba (m³)',12]],
   c:v=>{const V=(v.A1+v.A2)/2*v.d, Vs=V*(1+v.emp/100);
    return [['Volume geométrico',V,'m³',2,1],['Corte — volume solto',Vs,'m³'],['Viagens (corte)',up(Vs/v.cap),'un',0],['Aterro — corte necessário',V*v.fh,'m³'],['Aterro — solto p/ transporte',V*v.fh*(1+v.emp/100),'m³'],['Viagens (aterro)',up(V*v.fh*(1+v.emp/100)/v.cap),'un',0]];}},
+ {id:'gc', nome:'Compactação', titulo:'Grau de compactação', d:'Frasco de areia / cilindro: densidade de campo, GC e desvio de umidade.',
+  f:[['m','Massa úmida do solo (g)',4750],['vol','Volume do furo (cm³)',2000],['h','Umidade de campo (%)',9.5],['dmax','γd máx. laboratório (g/cm³)',2.15],['hot','Umidade ótima (%)',8.5],['gcmin','GC mínimo exigido (%)',100]],
+  c:v=>{const gh=v.m/v.vol, gd=gh/(1+v.h/100), gc=gd/v.dmax*100, dh=v.h-v.hot;
+   return [['γ úmido',gh,'g/cm³',3],['γd campo',gd,'g/cm³',3],['Grau de compactação',gc,'%',1,1],['Situação',Number.isFinite(gc)?(gc>=v.gcmin?'✓ Aprovado':'✗ Abaixo do mínimo'):'—','',0,1],['Desvio de umidade',(dh>0?'+':'')+F(dh,1),'p.p.',1]];}},
+ {id:'granular', nome:'Granular', titulo:'Brita / base granular', d:'Do volume compactado para toneladas, volume solto e viagens.',
+  f:[['L','Extensão (m)',100],['B','Largura (m)',7],['e','Espessura compactada (cm)',15],['dc','Dens. compactada (t/m³)',2.2],['ds','Dens. solta (t/m³)',1.6],['cap','Caçamba (m³)',12]],
+  c:v=>{const V=v.L*v.B*v.e/100, M=V*v.dc, Vs=M/v.ds;
+   return [['Volume compactado',V,'m³',2],['Massa',M,'t',1,1],['Volume solto',Vs,'m³',1],['Fator de empolamento',v.dc/v.ds,'',2],['Viagens',up(Vs/v.cap),'un',0,1]];}},
  {id:'decliv', nome:'Declividade', titulo:'Declividade e caimento', d:'Confere caimento medido e calcula desnível para a declividade alvo.',
   f:[['dist','Distância (m)',3.5],['dh','Desnível medido (cm)',7],['i','Declividade alvo (%)',2]],
   c:v=>[['Declividade medida',v.dh/(v.dist*100)*100,'%',2,1],['Desnível p/ alvo',v.i/100*v.dist*100,'cm',1,1],['Diferença',v.dh-v.i/100*v.dist*100,'cm',1],['Inclinação medida',Math.atan(v.dh/100/v.dist)*180/Math.PI,'°']]},
@@ -148,11 +173,11 @@ function show(id){
   if(c.special) return c.id==='rapida'?rapida():controle();
   const vals=store[c.id]||{};
   app.innerHTML=`<div class="card"><h2>${c.titulo}</h2><p class="d">${c.d}</p>
-   <div class="grid">${c.f.map(([k,lab,def])=>`<label>${lab}<input inputmode="decimal" data-k="${k}" value="${(vals[k]??String(def)).toString().replace('.',',')}"></label>`).join('')}</div>
+   <div class="grid">${c.f.map(([k,lab,def,tp])=>tp==='txt'?`<label class="full">${lab}<input data-k="${k}" data-txt="1" value="${String(vals[k]??def).replace(/"/g,'&quot;')}"></label>`:`<label>${lab}<input inputmode="decimal" data-k="${k}" value="${(vals[k]??String(def)).toString().replace('.',',')}"></label>`).join('')}</div>
    <div class="res" id="res"></div>
    <div class="tools"><button id="cp">Copiar resultado</button><button id="rs">Valores padrão</button></div></div>`;
   const run=()=>{
-    const v={}; app.querySelectorAll('input[data-k]').forEach(i=>{v[i.dataset.k]=P(i.value); (store[c.id]=store[c.id]||{})[i.dataset.k]=i.value;}); save();
+    const v={}; app.querySelectorAll('input[data-k]').forEach(i=>{v[i.dataset.k]=i.dataset.txt?i.value:P(i.value); (store[c.id]=store[c.id]||{})[i.dataset.k]=i.value;}); save();
     const out=c.c(v);
     document.getElementById('res').innerHTML=out.map(([k,n,u,d,hl])=>`<div class="row${hl?' hl':''}"><span class="k">${k}</span><span class="v">${typeof n==='string'?n:F(n,d??2)}<span class="u">${u}</span></span></div>`).join('');
     app._txt=c.titulo+'\n'+c.f.map(([k,lab])=>`${lab}: ${v[k]}`.replace('.',',')).join('\n')+'\n—\n'+out.map(([k,n,u,d])=>`${k}: ${typeof n==='string'?n:F(n,d??2)} ${u}`).join('\n');
