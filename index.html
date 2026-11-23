@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#d9822b">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Calc Campo">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Calculadora de Campo</title>
+<style>
+:root{--bg:#f4f3ef;--card:#fff;--ink:#1d1f22;--mut:#6b6f76;--line:#e2e0da;--acc:#d9822b;--acc2:#1f5f8b;--res:#f7f3ec}
+@media (prefers-color-scheme:dark){:root{--bg:#141517;--card:#1e2023;--ink:#ecebe7;--mut:#9a9ea5;--line:#2e3135;--acc:#f0a050;--acc2:#7fb3d9;--res:#25231f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:calc(14px + env(safe-area-inset-top)) 16px 6px}
+h1{margin:0;font-size:19px;letter-spacing:.2px}
+h1 span{color:var(--acc)}
+.sub{color:var(--mut);font-size:13px}
+nav{display:flex;gap:6px;overflow-x:auto;padding:8px 12px 10px;position:sticky;top:0;background:var(--bg);z-index:2;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 12px;border-radius:999px;font-size:14px;cursor:pointer}
+nav button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+main{padding:0 12px calc(40px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.card h2{margin:0 0 2px;font-size:17px}
+.card p.d{margin:0 0 12px;color:var(--mut);font-size:13px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:flex;flex-direction:column;font-size:12.5px;color:var(--mut);gap:4px}
+label.full{grid-column:1/-1}
+input{font:inherit;font-size:18px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);width:100%}
+input:focus{outline:2px solid var(--acc);border-color:transparent}
+.res{margin-top:14px;background:var(--res);border-radius:12px;padding:6px 12px}
+.row{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px dashed var(--line);gap:10px}
+.row:last-child{border-bottom:0}
+.row .k{color:var(--mut);font-size:14px}
+.row .v{font-weight:700;font-size:18px;font-variant-numeric:tabular-nums;text-align:right}
+.row.hl .v{color:var(--acc);font-size:21px}
+.row .u{font-weight:400;font-size:13px;color:var(--mut);margin-left:3px}
+.tools{display:flex;gap:8px;margin-top:10px}
+.tools button{flex:1;border:1px solid var(--line);background:transparent;color:var(--acc2);padding:9px;border-radius:10px;font-size:14px;cursor:pointer}
+.note{font-size:12px;color:var(--mut);margin-top:10px}
+#expr{font-size:24px;text-align:right}
+.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.keys button{font:inherit;font-size:20px;padding:14px 0;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.keys button.op{color:var(--acc);font-weight:700}
+.keys button.eq{background:var(--acc);color:#fff;border-color:var(--acc)}
+.hist{margin-top:10px;font-size:14px;color:var(--mut)}
+.hist div{padding:4px 0;border-bottom:1px dashed var(--line);display:flex;justify-content:space-between;gap:8px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:14px;opacity:0;transition:.2s;pointer-events:none}
+.toast.on{opacity:1}
+
+.sec{margin-top:14px}
+.sec h3{font-size:14px;margin:0 0 8px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
+details{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:12px}
+summary{cursor:pointer;font-size:14px;color:var(--acc2)}
+select{font:inherit;font-size:17px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);width:100%}
+.prev{margin-top:10px;font-size:14px;background:var(--res);border-radius:10px;padding:10px 12px}
+.prev b{color:var(--acc)}
+.btn{font:inherit;font-size:16px;padding:12px;border-radius:10px;border:0;background:var(--acc);color:#fff;font-weight:600;cursor:pointer;width:100%;margin-top:12px}
+.btn.sec2{background:transparent;color:var(--acc2);border:1px solid var(--line);font-weight:500}
+.load{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:8px}
+.load .top{display:flex;justify-content:space-between;font-size:14px;color:var(--mut)}
+.load .top b{color:var(--ink)}
+.load .mid{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;font-size:14.5px}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12.5px;font-weight:600}
+.ok{background:#2e8b5722;color:#2e8b57}.bad{background:#c0392b22;color:#d0443a}.neu{background:#8882;color:var(--mut)}
+.load .act{display:flex;gap:8px;margin-top:8px}
+.load .act button{flex:1;font:inherit;font-size:13.5px;padding:7px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--acc2);cursor:pointer}
+.load .act button.del{color:#d0443a}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kpi{background:var(--res);border-radius:10px;padding:8px 10px}
+.kpi .k{font-size:12px;color:var(--mut)}.kpi .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+.st{font-size:12px;color:var(--mut);margin-top:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Calculadora de <span>Campo</span></h1>
+  <div class="sub">Pavimentação · Terraplenagem · Concreto · Obra</div>
+</header>
+<nav id="tabs"></nav>
+<main id="app"></main>
+<div class="toast" id="toast">Copiado</div>
+
+<script>
+const P = s => { if (s===undefined||s===null) return NaN; s=String(s).trim().replace(/\s/g,''); if(!s) return NaN;
+  if (s.includes(',')) s = s.replace(/\./g,'').replace(',', '.'); return parseFloat(s); };
+const F = (n,d=2) => !Number.isFinite(n) ? '—' : n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const estFmt=(p,de=20)=>Number.isFinite(p)?Math.floor(p/de+1e-9)+' + '+F(p-Math.floor(p/de+1e-9)*de,2):'—';
+const up = n => Number.isFinite(n) ? Math.ceil(n-1e-9) : NaN;
+
+const CALCS = [
+ {id:'controle', nome:'Controle CBUQ', special:true},
+ {id:'carga', nome:'Rende carga', titulo:'Quanto rende a carga', d:'Caminhão chegou na vibro: quantos metros ele faz na espessura de projeto e em que estaca termina.',
+  f:[['t','Toneladas da nota',14],['B','Largura (m)',3.5],['e','Espessura compactada (cm)',8],['dens','Densidade compactada (t/m³)',2.4],['emp','Empolamento lançamento (%)',20],['est','Estaca início',10],['m','+ metros',0],['de','Dist. entre estacas (m)',20]],
+  c:v=>{const A=v.t/(v.dens*v.e/100), L=A/v.B, p=v.est*v.de+v.m+L;
+   return [['Rende',L,'m',1,1],['Termina na estaca',estFmt(p,v.de),'',0,1],['Área coberta',A,'m²',1],['Espessura solta na mesa',v.e*(1+v.emp/100),'cm',1,1],['Taxa',v.t*1000/A,'kg/m²',0]];}},
+ {id:'rapida', nome:'Rápida', special:true},
+ {id:'fresagem', nome:'Fresagem', titulo:'Fresagem a frio', d:'Volume fresado, empolado e viagens de bota-fora.',
+  f:[['L','Extensão (m)',1500],['B','Largura (m)',7],['e','Espessura (cm)',3],['emp','Empolamento (%)',30],['cap','Caçamba (m³)',12],['dens','Dens. fresado (t/m³)',2.2]],
+  c:v=>{const A=v.L*v.B, V=A*v.e/100, Vs=V*(1+v.emp/100);
+   return [['Área',A,'m²',1],['Volume compacto',V,'m³'],['Massa estimada',V*v.dens,'t'],['Volume solto',Vs,'m³'],['Viagens',up(Vs/v.cap),'un',0,1]];}},
+ {id:'cbuq', nome:'CBUQ', titulo:'Massa asfáltica (CBUQ)', d:'Toneladas de massa e cargas de caminhão.',
+  f:[['L','Extensão (m)',1500],['B','Largura (m)',7],['e','Espessura (cm)',8],['dens','Densidade (t/m³)',2.4],['perda','Perda/sobra (%)',3],['cap','Carga caminhão (t)',14]],
+  c:v=>{const A=v.L*v.B, V=A*v.e/100, M=V*v.dens, Mp=M*(1+v.perda/100);
+   return [['Área',A,'m²',1],['Volume',V,'m³'],['Massa teórica',M,'t'],['Massa c/ perda',Mp,'t',2,1],['Cargas',up(Mp/v.cap),'un',0,1],['Consumo por m',Mp/v.L,'t/m']];}},
+ {id:'estaca', nome:'Estacas', titulo:'Estaqueamento', d:'Extensão entre estacas e quanto CBUQ/fresagem cabe no trecho.',
+  f:[['e1','Estaca inicial',10],['m1','+ metros',0],['e2','Estaca final',35],['m2','+ metros',8.5],['de','Dist. entre estacas (m)',20],['B','Largura (m) — opcional',7]],
+  c:v=>{const x1=v.e1*v.de+v.m1, x2=v.e2*v.de+v.m2, L=Math.abs(x2-x1);
+   return [['Extensão do trecho',L,'m',2,1],['Nº de estacas',L/v.de,'est'],['Área do trecho',L*v.B,'m²',1],['Progressiva inicial',x1,'m'],['Progressiva final',x2,'m']];}},
+ {id:'pintura', nome:'Pintura', titulo:'Pintura de ligação / imprimação', d:'Litros de emulsão/asfalto diluído pela taxa de projeto.',
+  f:[['L','Extensão (m)',1500],['B','Largura (m)',7],['tx','Taxa (L/m²)',0.5],['tq','Tanque espargidor (L)',6000]],
+  c:v=>{const A=v.L*v.B, Q=A*v.tx;
+   return [['Área',A,'m²',1],['Quantidade',Q,'L',0,1],['Em m³',Q/1000,'m³'],['Tanques',up(Q/v.tq),'un',0,1],['Por metro de pista',Q/v.L,'L/m']];}},
+ {id:'terra', nome:'Terraplenagem', titulo:'Volume por seção média', d:'V = (A1 + A2)/2 × distância. Corte empolado ou aterro com fator de homogeneização.',
+  f:[['A1','Área seção 1 (m²)',12],['A2','Área seção 2 (m²)',18],['d','Distância (m)',20],['emp','Empolamento (%)',25],['fh','Fator homogen. (aterro)',1.25],['cap','Caçamba (m³)',12]],
+  c:v=>{const V=(v.A1+v.A2)/2*v.d, Vs=V*(1+v.emp/100);
+   return [['Volume geométrico',V,'m³',2,1],['Corte — volume solto',Vs,'m³'],['Viagens (corte)',up(Vs/v.cap),'un',0],['Aterro — corte necessário',V*v.fh,'m³'],['Aterro — solto p/ transporte',V*v.fh*(1+v.emp/100),'m³'],['Viagens (aterro)',up(V*v.fh*(1+v.emp/100)/v.cap),'un',0]];}},
+ {id:'decliv', nome:'Declividade', titulo:'Declividade e caimento', d:'Confere caimento medido e calcula desnível para a declividade alvo.',
+  f:[['dist','Distância (m)',3.5],['dh','Desnível medido (cm)',7],['i','Declividade alvo (%)',2]],
+  c:v=>[['Declividade medida',v.dh/(v.dist*100)*100,'%',2,1],['Desnível p/ alvo',v.i/100*v.dist*100,'cm',1,1],['Diferença',v.dh-v.i/100*v.dist*100,'cm',1],['Inclinação medida',Math.atan(v.dh/100/v.dist)*180/Math.PI,'°']]},
+ {id:'concreto', nome:'Concreto', titulo:'Concreto e cimento', d:'Volume de peça e consumo de cimento pelo traço.',
+  f:[['c','Comprimento (m)',10],['l','Largura (m)',0.3],['h','Altura (m)',0.4],['n','Quantidade de peças',1],['cc','Consumo cimento (kg/m³)',350],['perda','Perda (%)',5]],
+  c:v=>{const V=v.c*v.l*v.h*v.n, Vp=V*(1+v.perda/100), kg=Vp*v.cc;
+   return [['Volume',V,'m³',3],['Volume c/ perda',Vp,'m³',2,1],['Cimento',kg,'kg',0],['Sacos 50 kg',up(kg/50),'sc',0,1],['Caminhões 8 m³',up(Vp/8),'un',0]];}},
+ {id:'prod', nome:'Produção', titulo:'Produção e prazo', d:'Quanto falta, % executado e dias para terminar.',
+  f:[['tot','Total do serviço',10500],['exe','Executado',4200],['pd','Produção por dia',900],['h','Horas trabalhadas/dia',8]],
+  c:v=>{const r=Math.max(v.tot-v.exe,0);
+   return [['Executado',v.exe/v.tot*100,'%',1,1],['Restante',r,'',1],['Dias restantes',r/v.pd,'dias',1],['Dias (arredondado)',up(r/v.pd),'dias',0,1],['Produção por hora',v.pd/v.h,'/h',1]];}},
+];
+
+const KEY='calcCampo.v1';
+let store={}; try{store=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(store))}catch(e){}};
+
+const tabs=document.getElementById('tabs'), app=document.getElementById('app');
+function toast(t){const el=document.getElementById('toast');el.textContent=t;el.classList.add('on');setTimeout(()=>el.classList.remove('on'),1200)}
+
+function show(id){
+  const c=CALCS.find(x=>x.id===id)||CALCS[1];
+  [...tabs.children].forEach(b=>b.classList.toggle('on',b.dataset.id===c.id));
+  store._tab=c.id; save();
+  if(c.special) return c.id==='rapida'?rapida():controle();
+  const vals=store[c.id]||{};
+  app.innerHTML=`<div class="card"><h2>${c.titulo}</h2><p class="d">${c.d}</p>
+   <div class="grid">${c.f.map(([k,lab,def])=>`<label>${lab}<input inputmode="decimal" data-k="${k}" value="${(vals[k]??String(def)).toString().replace('.',',')}"></label>`).join('')}</div>
+   <div class="res" id="res"></div>
+   <div class="tools"><button id="cp">Copiar resultado</button><button id="rs">Valores padrão</button></div></div>`;
+  const run=()=>{
+    const v={}; app.querySelectorAll('input[data-k]').forEach(i=>{v[i.dataset.k]=P(i.value); (store[c.id]=store[c.id]||{})[i.dataset.k]=i.value;}); save();
+    const out=c.c(v);
+    document.getElementById('res').innerHTML=out.map(([k,n,u,d,hl])=>`<div class="row${hl?' hl':''}"><span class="k">${k}</span><span class="v">${typeof n==='string'?n:F(n,d??2)}<span class="u">${u}</span></span></div>`).join('');
+    app._txt=c.titulo+'\n'+c.f.map(([k,lab])=>`${lab}: ${v[k]}`.replace('.',',')).join('\n')+'\n—\n'+out.map(([k,n,u,d])=>`${k}: ${typeof n==='string'?n:F(n,d??2)} ${u}`).join('\n');
+  };
+  app.querySelectorAll('input').forEach(i=>{i.addEventListener('input',run);i.addEventListener('focus',()=>i.select())});
+  document.getElementById('cp').onclick=async()=>{try{await navigator.clipboard.writeText(app._txt);toast('Copiado')}catch(e){toast('Não foi possível copiar')}};
+  document.getElementById('rs').onclick=()=>{delete store[c.id];save();show(c.id)};
+  run();
+}
+
+function rapida(){
+  const h=store._hist||[];
+  app.innerHTML=`<div class="card"><h2>Conta rápida</h2><p class="d">Digite a expressão. Aceita vírgula, ( ), ^ e %.</p>
+   <input id="expr" inputmode="decimal" placeholder="0" value="${store._expr||''}">
+   <div class="res"><div class="row hl"><span class="k">=</span><span class="v" id="out">—</span></div></div>
+   <div class="keys">${['7','8','9','÷','4','5','6','×','1','2','3','−','0',',','(',')','C','⌫','^','+'].map(k=>`<button class="${/[÷×−+^()]/.test(k)?'op':''}" data-k="${k}">${k}</button>`).join('')}<button class="eq" data-k="=" style="grid-column:1/-1">=</button></div>
+   <div class="hist" id="hist"></div></div>`;
+  const ex=document.getElementById('expr'), out=document.getElementById('out');
+  const ev=s=>{let t=s.replace(/÷/g,'/').replace(/×/g,'*').replace(/−/g,'-').replace(/\s/g,'').replace(/\.(?=\d{3}(\D|$))/g,'').replace(/,/g,'.').replace(/(\d+(?:\.\d+)?)%/g,'($1/100)').replace(/\^/g,'**');
+    if(!t||/[^0-9+\-*/().]/.test(t)) return NaN; try{const r=Function('"use strict";return ('+t+')')();return typeof r==='number'?r:NaN}catch(e){return NaN}};
+  const fmt=n=>Number.isFinite(n)?n.toLocaleString('pt-BR',{maximumFractionDigits:6}):'—';
+  const run=()=>{store._expr=ex.value;save();out.textContent=fmt(ev(ex.value))};
+  const drawH=()=>{document.getElementById('hist').innerHTML=h.map(([a,b])=>`<div><span>${a}</span><b>${b}</b></div>`).join('')};
+  ex.addEventListener('input',run);
+  app.querySelectorAll('.keys button').forEach(b=>b.onclick=()=>{const k=b.dataset.k;
+    if(k==='C')ex.value='';else if(k==='⌫')ex.value=ex.value.slice(0,-1);
+    else if(k==='='){const r=ev(ex.value);if(Number.isFinite(r)){h.unshift([ex.value,fmt(r)]);h.length=Math.min(h.length,8);store._hist=h;ex.value=String(+r.toFixed(10)).replace('.',',');drawH();}}
+    else ex.value+=k; run();});
+  run();drawH();
+}
+
+
+// ---------- CONTROLE DE CARGAS ----------
+const CFG_DEF={B:3.5,e:8,dens:2.4,tol:10,tmin:140,tmax:177,emp:20,de:20};
+let C={cfg:{...CFG_DEF},cargas:{}}, DBX=null, ctlDay=null, editId=null, delArm=null, migrated=false;
+try{const l=JSON.parse(localStorage.getItem('calcCampo.cbuq')||'null'); if(l){C.cfg={...CFG_DEF,...l.cfg};C.cargas=l.cargas||{};}}catch(e){}
+const saveLocal=()=>{try{localStorage.setItem('calcCampo.cbuq',JSON.stringify(C))}catch(e){}};
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const nowHM=()=>{const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let syncMsg='Dados salvos neste celular — faça backup de vez em quando.';
+
+async function initDb(){
+  try{
+    if(!window.claude||!window.claude.use) return;
+    const [db,user]=await Promise.all([claude.use('db'),claude.use('user')]);
+    if(!db||!user) return;
+    const uid=await user.id(); if(!uid) return;
+    const base=db.doc('data/users/'+uid+'/obra');
+    DBX={cfg:db.doc('data/users/'+uid+'/cfg'), col:base.collection('cargas')};
+    syncMsg='Sincronizando…'; refreshCtl();
+    let first=true; const tm=setTimeout(()=>{syncMsg='Sem conexão — dados locais';refreshCtl()},10000);
+    DBX.cfg.onSnapshot(s=>{ if(s.exists){C.cfg={...CFG_DEF,...s.data()};saveLocal();refreshCtl();} },()=>{});
+    DBX.col.onSnapshot(snap=>{
+      if(!snap.metadata.fromCache){clearTimeout(tm);syncMsg='Salvo na nuvem (sua conta)';}
+      if(first && !snap.metadata.fromCache){ first=false;
+        if(snap.empty && !migrated && Object.keys(C.cargas).length){migrated=true; (async()=>{for(const [id,r] of Object.entries(C.cargas)){try{await DBX.col.doc(id).set(r)}catch(e){}}})(); return;}
+      }
+      const m={}; snap.docs.forEach(d=>{m[d.id]=d.data()}); C.cargas=m; saveLocal(); refreshCtl();
+    },e=>{syncMsg='Erro na nuvem — salvando local';DBX=null;refreshCtl()});
+  }catch(e){}
+}
+async function putCarga(id,r){C.cargas[id]=r;saveLocal();refreshCtl(); if(DBX){try{await DBX.col.doc(id).set(r)}catch(e){toast('Falha ao salvar na nuvem')}}}
+async function delCarga(id){delete C.cargas[id];saveLocal();refreshCtl(); if(DBX){try{await DBX.col.doc(id).delete()}catch(e){}}}
+async function putCfg(){saveLocal(); if(DBX){try{await DBX.cfg.set({...C.cfg})}catch(e){}}}
+
+function calcCarga(r,cfg=C.cfg){
+  const de=cfg.de, pi=r.ei*de+r.mi, pf=(r.ef===''||r.ef==null||!Number.isFinite(r.ef))?NaN:r.ef*de+(r.mf||0);
+  const B=r.B||cfg.B, Aprev=r.t/(cfg.dens*cfg.e/100), Lprev=Aprev/B;
+  const L=Math.abs(pf-pi), A=L*B, er=Number.isFinite(L)&&L>0?r.t/(cfg.dens*A)*100:NaN;
+  const dev=Number.isFinite(er)?(er/cfg.e-1)*100:NaN;
+  const tOk=!Number.isFinite(r.temp)?null:(r.temp>=cfg.tmin&&r.temp<=cfg.tmax);
+  const eOk=!Number.isFinite(dev)?null:Math.abs(dev)<=cfg.tol;
+  return {pi,pf,B,Lprev,pfPrev:pi+Lprev,L,A,er,dev,tOk,eOk,taxa:Number.isFinite(A)&&A>0?r.t*1000/A:NaN};
+}
+const dayList=d=>Object.entries(C.cargas).map(([id,r])=>({id,...r})).filter(r=>r.dia===d).sort((a,b)=>(a.hora||'').localeCompare(b.hora||'')||(a.criado||0)-(b.criado||0));
+
+function controle(){ ctlDay=ctlDay||today(); editId=null; drawCtl(); }
+function refreshCtl(){ if(store._tab==='controle' && !editId && !(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#frm'))) drawCtl(); else { const s=document.getElementById('sync'); if(s) s.textContent=syncMsg; } }
+
+function drawCtl(){
+  const cfg=C.cfg, list=dayList(ctlDay), last=list[list.length-1];
+  const ed=editId?{id:editId,...C.cargas[editId]}:null;
+  // sugestão: começa onde a última terminou
+  let sugE='',sugM='';
+  if(!ed&&last){const k=calcCarga(last);const p=Number.isFinite(k.pf)?k.pf:k.pfPrev; if(Number.isFinite(p)){sugE=Math.floor(p/cfg.de+1e-9);sugM=+(p-sugE*cfg.de).toFixed(2);}}
+  const v=ed||{nota:'',t:'',temp:'',ei:sugE,mi:sugM,ef:'',mf:'',B:cfg.B,faixa:last?last.faixa:'LD',em:'',obs:''};
+  const n=x=>(x===''||x==null||!Number.isFinite(x))?'':String(x).replace('.',',');
+  const days=[...new Set(Object.values(C.cargas).map(r=>r.dia).concat([today(),ctlDay]))].sort().reverse();
+
+  // resumo
+  let tt=0,tc=0,Ac=0,Lc=0,ts=[],nb=0;
+  list.forEach(r=>{const k=calcCarga(r);tt+=r.t||0; if(Number.isFinite(k.L)&&k.L>0){tc+=r.t;Ac+=k.A;Lc+=k.L;} if(Number.isFinite(r.temp))ts.push(r.temp); if(k.tOk===false||k.eOk===false)nb++;});
+  const em=Ac>0?tc/(cfg.dens*Ac)*100:NaN, dv=Number.isFinite(em)?(em/cfg.e-1)*100:NaN;
+
+  app.innerHTML=`<div class="card">
+   <h2>Controle de cargas — CBUQ</h2>
+   <p class="d">Lance cada caminhão na chegada. Ao terminar a carga, informe a estaca final: a espessura real aparece na hora.</p>
+   <div class="grid"><label class="full">Dia<select id="day">${days.map(d=>`<option ${d===ctlDay?'selected':''} value="${d}">${d.split('-').reverse().join('/')}${d===today()?' (hoje)':''}</option>`).join('')}</select></label></div>
+
+   <div class="sec" id="frm"><h3>${ed?'Editar carga':'Nova carga'}</h3><div class="grid">
+    <label>Nota / placa<input id="f_nota" value="${esc(v.nota)}" placeholder="NF 1234"></label>
+    <label>Toneladas<input id="f_t" inputmode="decimal" value="${n(v.t)}"></label>
+    <label>Temp. chegada (°C)<input id="f_temp" inputmode="decimal" value="${n(v.temp)}"></label>
+    <label>Faixa<select id="f_faixa">${['LD','LE','Eixo','Ambas'].map(o=>`<option ${o===v.faixa?'selected':''}>${o}</option>`).join('')}</select></label>
+    <label>Estaca início<input id="f_ei" inputmode="decimal" value="${n(v.ei)}"></label>
+    <label>+ metros<input id="f_mi" inputmode="decimal" value="${n(v.mi)}"></label>
+    <label>Estaca fim (ao terminar)<input id="f_ef" inputmode="decimal" value="${n(v.ef)}"></label>
+    <label>+ metros<input id="f_mf" inputmode="decimal" value="${n(v.mf)}"></label>
+    <label>Largura (m)<input id="f_B" inputmode="decimal" value="${n(v.B)}"></label>
+    <label>Esp. medida (cm) — opc.<input id="f_em" inputmode="decimal" value="${n(v.em)}"></label>
+    <label class="full">Observação<input id="f_obs" value="${esc(v.obs)}" placeholder="ex.: segregação, chuva, parada da vibro"></label>
+   </div>
+   <div class="prev" id="prev"></div>
+   <button class="btn" id="sv">${ed?'Salvar alterações':'Registrar carga'}</button>
+   ${ed?'<button class="btn sec2" id="cx">Cancelar edição</button>':''}
+   </div>
+
+   <div class="sec"><h3>Resumo do dia</h3><div class="kpis">
+    <div class="kpi"><div class="k">Cargas</div><div class="v">${list.length}</div></div>
+    <div class="kpi"><div class="k">Toneladas</div><div class="v">${F(tt,1)} t</div></div>
+    <div class="kpi"><div class="k">Extensão fechada</div><div class="v">${F(Lc,1)} m</div></div>
+    <div class="kpi"><div class="k">Área</div><div class="v">${F(Ac,0)} m²</div></div>
+    <div class="kpi"><div class="k">Esp. média real</div><div class="v" style="color:${!Number.isFinite(dv)?'inherit':Math.abs(dv)<=cfg.tol?'#2e8b57':'#d0443a'}">${F(em,2)} cm</div></div>
+    <div class="kpi"><div class="k">Desvio x projeto</div><div class="v">${Number.isFinite(dv)?(dv>0?'+':'')+F(dv,1)+'%':'—'}</div></div>
+    <div class="kpi"><div class="k">Temp. média</div><div class="v">${ts.length?F(ts.reduce((a,b)=>a+b,0)/ts.length,0)+' °C':'—'}</div></div>
+    <div class="kpi"><div class="k">Fora da tolerância</div><div class="v" style="color:${nb?'#d0443a':'inherit'}">${nb}</div></div>
+   </div></div>
+
+   <div class="sec"><h3>Cargas do dia</h3><div id="lst">${list.length?'':'<div class="note">Nenhuma carga lançada neste dia.</div>'}${list.map((r,i)=>{const k=calcCarga(r);
+     return `<div class="load"><div class="top"><span><b>#${i+1}</b> · ${esc(r.hora)} · ${esc(r.nota||'s/ nota')} · ${esc(r.faixa||'')}</span><b>${F(r.t,2)} t</b></div>
+     <div class="mid"><span>${estFmt(k.pi,cfg.de)} → ${Number.isFinite(k.pf)?estFmt(k.pf,cfg.de):'<i>em andamento</i> (prev. '+estFmt(k.pfPrev,cfg.de)+')'}</span>
+     ${Number.isFinite(k.L)&&k.L>0?`<span>${F(k.L,1)} m</span><span class="badge ${k.eOk?'ok':'bad'}">${F(k.er,2)} cm (${k.dev>0?'+':''}${F(k.dev,0)}%)</span>`:`<span class="badge neu">rende ${F(k.Lprev,1)} m</span>`}
+     ${Number.isFinite(r.temp)?`<span class="badge ${k.tOk?'ok':'bad'}">${F(r.temp,0)} °C</span>`:''}
+     ${Number.isFinite(r.em)?`<span>medida ${F(r.em,1)} cm</span>`:''}</div>
+     ${r.obs?`<div class="note" style="margin-top:4px">${esc(r.obs)}</div>`:''}
+     <div class="act"><button data-ed="${r.id}">${Number.isFinite(k.pf)?'Editar':'Fechar / editar'}</button><button class="del" data-del="${r.id}">${delArm===r.id?'Confirmar exclusão':'Excluir'}</button></div></div>`}).join('')}</div></div>
+
+   <div class="tools"><button id="cpd">Enviar resumo</button><button id="csv">Exportar CSV</button></div>
+
+   <details><summary>Parâmetros de projeto</summary><div class="grid" style="margin-top:10px">
+    ${[['B','Largura padrão (m)'],['e','Espessura projeto (cm)'],['dens','Densidade compactada (t/m³)'],['tol','Tolerância espessura (±%)'],['tmin','Temp. mínima (°C)'],['tmax','Temp. máxima (°C)'],['emp','Empolamento lançamento (%)'],['de','Dist. entre estacas (m)']].map(([k,l])=>`<label>${l}<input inputmode="decimal" data-cfg="${k}" value="${n(cfg[k])}"></label>`).join('')}
+   </div><div class="note">Ajuste temperaturas e tolerância à especificação da obra (projeto/DNIT/DEINFRA). Densidade: use a do projeto de mistura ou a média dos corpos de prova.</div></details>
+   <details><summary>Backup dos dados</summary><div class="tools"><button id="bkx">Exportar backup</button><button id="bki">Importar backup</button></div><input type="file" id="bkf" accept=".json,application/json" hidden><div class="note">O backup é um arquivo .json com todas as cargas e parâmetros. Guarde no Drive ou mande para você no WhatsApp. Para passar para outro celular, use Importar.</div></details>
+   <div class="st" id="sync">${syncMsg}</div>
+  </div>`;
+
+  const g=id=>document.getElementById(id);
+  const read=()=>({nota:g('f_nota').value.trim(),t:P(g('f_t').value),temp:P(g('f_temp').value),faixa:g('f_faixa').value,ei:P(g('f_ei').value),mi:P(g('f_mi').value)||0,ef:P(g('f_ef').value),mf:P(g('f_mf').value)||0,B:P(g('f_B').value),em:P(g('f_em').value),obs:g('f_obs').value.trim()});
+  const prev=()=>{const r=read(); if(!Number.isFinite(r.t)||!Number.isFinite(r.ei)){g('prev').innerHTML='Informe toneladas e estaca de início para ver quanto a carga rende.';return;}
+    const k=calcCarga(r);
+    let h=`Rende <b>${F(k.Lprev,1)} m</b> a ${F(cfg.e,1)} cm → termina na estaca <b>${estFmt(k.pfPrev,cfg.de)}</b>. Mesa da vibro ≈ <b>${F(cfg.e*(1+cfg.emp/100),1)} cm</b> solto.`;
+    if(Number.isFinite(k.L)&&k.L>0) h+=`<br>Real: ${F(k.L,1)} m → espessura média <b style="color:${k.eOk?'#2e8b57':'#d0443a'}">${F(k.er,2)} cm</b> (${k.dev>0?'+':''}${F(k.dev,1)}%) · taxa ${F(k.taxa,0)} kg/m²`;
+    if(Number.isFinite(r.temp)) h+=`<br>Temperatura ${k.tOk?'<span class="badge ok">dentro</span>':'<span class="badge bad">fora</span>'} (${cfg.tmin}–${cfg.tmax} °C)`;
+    g('prev').innerHTML=h;};
+  app.querySelectorAll('#frm input,#frm select').forEach(i=>{i.addEventListener('input',prev);i.addEventListener('focus',()=>i.select&&i.select())});
+  prev();
+  g('day').onchange=e=>{ctlDay=e.target.value;editId=null;drawCtl()};
+  g('sv').onclick=()=>{const r=read(); if(!Number.isFinite(r.t)||r.t<=0){toast('Informe as toneladas');return;} if(!Number.isFinite(r.ei)){toast('Informe a estaca de início');return;}
+    const id=editId||('c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6));
+    const old=editId?C.cargas[editId]:null;
+    const rec={...r,ef:Number.isFinite(r.ef)?r.ef:null,temp:Number.isFinite(r.temp)?r.temp:null,em:Number.isFinite(r.em)?r.em:null,B:Number.isFinite(r.B)?r.B:cfg.B,dia:old?old.dia:ctlDay,hora:old?old.hora:nowHM(),criado:old?old.criado:Date.now()};
+    editId=null; if(document.activeElement)document.activeElement.blur(); putCarga(id,rec); toast(old?'Carga atualizada':'Carga registrada'); window.scrollTo({top:0,behavior:'smooth'});};
+  if(g('cx')) g('cx').onclick=()=>{editId=null;drawCtl()};
+  app.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>{editId=b.dataset.ed;delArm=null;drawCtl();g('frm').scrollIntoView({behavior:'smooth'});setTimeout(()=>{const f=g('f_ef'); if(f&&!f.value) f.focus()},300)});
+  app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const id=b.dataset.del; if(delArm===id){delArm=null;delCarga(id);toast('Excluída');} else {delArm=id;drawCtl();setTimeout(()=>{if(delArm===id){delArm=null;drawCtl()}},4000);}});
+  app.querySelectorAll('[data-cfg]').forEach(i=>{i.addEventListener('change',()=>{const x=P(i.value); if(Number.isFinite(x)){C.cfg[i.dataset.cfg]=x;putCfg();drawCtl();}})});
+  g('cpd').onclick=async()=>{
+    const txt=`CBUQ — ${ctlDay.split('-').reverse().join('/')}\nCargas: ${list.length} · ${F(tt,2)} t\nExtensão fechada: ${F(Lc,1)} m · Área ${F(Ac,0)} m²\nEsp. média real: ${F(em,2)} cm (projeto ${F(cfg.e,1)} cm, ${Number.isFinite(dv)?(dv>0?'+':'')+F(dv,1)+'%':'—'})\nTemp. média: ${ts.length?F(ts.reduce((a,b)=>a+b,0)/ts.length,0)+' °C':'—'} · Fora da tolerância: ${nb}\n—\n`+
+      list.map((r,i)=>{const k=calcCarga(r);return `#${i+1} ${r.hora} ${r.nota||''} ${r.faixa||''} ${F(r.t,2)} t | ${estFmt(k.pi,cfg.de)} → ${Number.isFinite(k.pf)?estFmt(k.pf,cfg.de):'aberta'}${Number.isFinite(k.er)?' | '+F(k.L,1)+' m | '+F(k.er,2)+' cm':''}${Number.isFinite(r.temp)?' | '+F(r.temp,0)+' °C':''}${r.obs?' | '+r.obs:''}`}).join('\n');
+    try{if(navigator.share){await navigator.share({text:txt});return;}}catch(e){if(e&&e.name==='AbortError')return;} try{await navigator.clipboard.writeText(txt);toast('Resumo copiado')}catch(e){toast('Não foi possível copiar')}};
+  g('bkx').onclick=()=>shareFile('backup-calc-campo-'+today()+'.json',JSON.stringify(C,null,1),'application/json');
+  g('bki').onclick=()=>g('bkf').click();
+  g('bkf').onchange=async e=>{const f=e.target.files[0]; if(!f) return; try{const d=JSON.parse(await f.text()); if(!d.cargas) throw 0;
+     C.cfg={...CFG_DEF,...C.cfg,...d.cfg}; C.cargas={...C.cargas,...d.cargas}; saveLocal(); toast('Backup importado: '+Object.keys(d.cargas).length+' cargas'); drawCtl();}catch(_){toast('Arquivo inválido')}};
+  g('csv').onclick=async()=>{
+    const all=Object.entries(C.cargas).map(([id,r])=>({id,...r})).sort((a,b)=>(a.dia+a.hora).localeCompare(b.dia+b.hora));
+    const hd='dia;hora;nota;faixa;toneladas;temp_C;estaca_ini;estaca_fim;largura_m;extensao_m;area_m2;esp_real_cm;desvio_%;taxa_kg_m2;esp_medida_cm;temp_ok;esp_ok;obs';
+    const f=(x,d=2)=>Number.isFinite(x)?x.toFixed(d).replace('.',','):'';
+    const rows=all.map(r=>{const k=calcCarga(r);return [r.dia,r.hora,r.nota,r.faixa,f(r.t),f(r.temp,0),estFmt(k.pi,cfg.de),Number.isFinite(k.pf)?estFmt(k.pf,cfg.de):'',f(k.B),f(k.L,1),f(k.A,1),f(k.er),f(k.dev,1),f(k.taxa,0),f(r.em,1),k.tOk==null?'':k.tOk?'sim':'não',k.eOk==null?'':k.eOk?'sim':'não',(r.obs||'').replace(/[;\n]/g,' ')].join(';')});
+    const data='﻿'+hd+'\n'+rows.join('\n');
+    shareFile('controle-cbuq.csv',data,'text/csv');};
+}
+
+async function shareFile(name,data,type){
+  const blob=new Blob([data],{type});
+  try{ const file=new File([blob],name,{type});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000); toast('Arquivo salvo');
+}
+try{ navigator.storage&&navigator.storage.persist&&navigator.storage.persist(); }catch(e){}
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }
+
+CALCS.forEach(c=>{const b=document.createElement('button');b.textContent=c.nome;b.dataset.id=c.id;b.onclick=()=>show(c.id);tabs.appendChild(b)});
+show(store._tab||'fresagem');
+</script>
+</body>
+</html>
