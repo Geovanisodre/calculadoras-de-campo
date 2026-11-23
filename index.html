@@ -97,9 +97,15 @@ const up = n => Number.isFinite(n) ? Math.ceil(n-1e-9) : NaN;
 const CALCS = [
  {id:'controle', nome:'Controle CBUQ', special:true},
  {id:'carga', nome:'Rende carga', titulo:'Quanto rende a carga', d:'Caminhão chegou na vibro: quantos metros ele faz na espessura de projeto e em que estaca termina.',
-  f:[['t','Toneladas da nota',14],['B','Largura (m)',3.5],['e','Espessura compactada (cm)',8],['dens','Densidade compactada (t/m³)',2.4],['emp','Empolamento lançamento (%)',20],['est','Estaca início',10],['m','+ metros',0],['de','Dist. entre estacas (m)',20]],
+  f:[['t','Toneladas da nota',14],['B','Largura (m)',3.5],['e','Espessura compactada (cm)',8],['dens','Densidade compactada (t/m³)',2.4],['emp','Empolamento lançamento (%)',20],['est','Estaca início',10],['m','+ metros',0],['ef','Estaca onde terminou (opc.)',''],['mf','+ metros',''],['de','Dist. entre estacas (m)',20],['tol','Tolerância (±%)',10]],
   c:v=>{const A=v.t/(v.dens*v.e/100), L=A/v.B, p=v.est*v.de+v.m+L;
-   return [['Rende',L,'m',1,1],['Termina na estaca',estFmt(p,v.de),'',0,1],['Área coberta',A,'m²',1],['Espessura solta na mesa',v.e*(1+v.emp/100),'cm',1,1],['Taxa',v.t*1000/A,'kg/m²',0]];}},
+   const out=[['Rende',L,'m',1,1],['Termina na estaca',estFmt(p,v.de),'',0,1],['Área coberta',A,'m²',1],['Espessura solta na mesa',v.e*(1+v.emp/100),'cm',1,1],['Taxa',v.t*1000/A,'kg/m²',0]];
+   if(Number.isFinite(v.ef)){const pr=v.ef*v.de+(Number.isFinite(v.mf)?v.mf:0), Lr=pr-(v.est*v.de+v.m);
+     if(Lr>0){const er=v.t/(v.dens*Lr*v.B)*100, dv=(er/v.e-1)*100, tp=Lr*v.B*v.e/100*v.dens, dt=v.t-tp;
+       const sit=Math.abs(dv)<=v.tol?'✓ Dentro da tolerância':(dv>0?'▲ Massa DEMAIS':'▼ Massa DE MENOS');
+       out.push(['— Conferência —','','',0],['Extensão real',Lr,'m',1],['Espessura real',er,'cm',2,1],['Desvio x projeto',(dv>0?'+':'')+F(dv,1),'%',1,1],['Situação',sit,'',0,1],[dt>0?'Massa a mais':'Massa a menos',Math.abs(dt),'t',2],['Diferença na estaca final',(Lr-L>0?'+':'')+F(Lr-L,1),'m',1],['Ajustar mesa para',v.e*(1+v.emp/100)*v.e/er,'cm solto',1]);}
+     else out.push(['Conferência','Estaca final antes do início','',0]);}
+   return out;}},
  {id:'rapida', nome:'Rápida', special:true},
  {id:'fresagem', nome:'Fresagem', titulo:'Fresagem a frio', d:'Volume fresado, empolado e viagens de bota-fora.',
   f:[['L','Extensão (m)',1500],['B','Largura (m)',7],['e','Espessura (cm)',3],['emp','Empolamento (%)',30],['cap','Caçamba (m³)',12],['dens','Dens. fresado (t/m³)',2.2]],
