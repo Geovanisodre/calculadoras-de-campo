@@ -115,6 +115,15 @@ const CALCS = [
   f:[['L','Extensão (m)',1500],['B','Largura (m)',7],['e','Espessura (cm)',8],['dens','Densidade (t/m³)',2.4],['perda','Perda/sobra (%)',3],['cap','Carga caminhão (t)',14]],
   c:v=>{const A=v.L*v.B, V=A*v.e/100, M=V*v.dens, Mp=M*(1+v.perda/100);
    return [['Área',A,'m²',1],['Volume',V,'m³'],['Massa teórica',M,'t'],['Massa c/ perda',Mp,'t',2,1],['Cargas',up(Mp/v.cap),'un',0,1],['Consumo por m',Mp/v.L,'t/m']];}},
+ {id:'confere', nome:'Confere CBUQ', titulo:'CBUQ recebido x projeto', d:'Soma os romaneios e compara com o volume de projeto (pista + acostamento com espessuras diferentes).',
+  f:[['A1','Área pista de rolamento (m²)',3650.87],['e1','Espessura pista (cm)',8],['A2','Área acostamento (m²)',1749.91],['e2','Espessura acostamento (cm)',5],['dens','Densidade compactada (t/m³)',2.4],['lst','Toneladas recebidas (romaneios) — separe por ;',"230,68; 392,71; 298,69",'txt'],['tol','Tolerância (±%)',5]],
+  c:v=>{const ts=String(v.lst).split(/[;\n\/]+|\s+(?=\d)/).map(x=>P(x)).filter(Number.isFinite), T=ts.reduce((a,b)=>a+b,0);
+   const A1=v.A1||0, A2=v.A2||0, V1=A1*v.e1/100, V2=A2*(v.e2||0)/100, V=V1+V2, A=A1+A2, M=V*v.dens, d=T-M, dp=M>0?d/M*100:NaN, Vr=T/v.dens;
+   const sit=!Number.isFinite(dp)?'—':Math.abs(dp)<=v.tol?'✓ Dentro da tolerância':(dp>0?'▲ Massa a MAIS':'▼ Massa a MENOS');
+   return [['Romaneios lidos',ts.length,'',0],['Total recebido',T,'t',2,1],['Volume projeto pista',V1,'m³',2],['Volume projeto acostamento',V2,'m³',2],['Volume projeto total',V,'m³',2],['Massa de projeto',M,'t',2,1],
+    [d>=0?'Diferença (sobra)':'Diferença (falta)',(d>=0?'+':'−')+F(Math.abs(d),2),'t',2,1],['Diferença',(dp>0?'+':'')+F(dp,1),'%',1,1],['Situação',sit,'',0,1],
+    ['— Espessuras —','','',0],['Esp. média projeto (ponderada)',A>0?V/A*100:NaN,'cm',2],['Esp. média real',A>0?Vr/A*100:NaN,'cm',2,1],['Esp. real na pista (acost. no projeto)',A1>0?(Vr-V2)/A1*100:NaN,'cm',2],
+    ['Taxa real',A>0?T*1000/A:NaN,'kg/m²',1],['Taxa projeto',A>0?M*1000/A:NaN,'kg/m²',1],['Volume real',Vr,'m³',2]];}},
  {id:'fresadora', nome:'Prod. fresadora', titulo:'Produção da fresadora', d:'Produção horária/diária e caminhões necessários para o bota-fora.',
   f:[['vel','Velocidade (m/min)',8],['B','Largura do tambor (m)',2],['e','Espessura (cm)',3],['ef','Eficiência (%)',60],['h','Horas/dia',8],['emp','Empolamento (%)',30],['cap','Caçamba (m³)',12]],
   c:v=>{const a=v.vel*60*v.B*v.ef/100, V=a*v.e/100, Vs=V*(1+v.emp/100);
